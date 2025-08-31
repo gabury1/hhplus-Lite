@@ -15,7 +15,7 @@ public class ReadPointHistoryService
 
     public List<PointHistory> getPointHistory(Long userId)
     {
-        return null;
+        return pointHistoryTable.selectAllByUserId(userId);
     }
 
 }
