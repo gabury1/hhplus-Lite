@@ -15,7 +15,14 @@ public class ChargePointService {
     private final UserPointTable userPointTable;
 
     public UserPoint chargeUserPoint(long userId, long amount) {
+
+
         UserPoint point = userPointTable.selectById(userId);
+        if(amount < 0) {
+            // 충전량이 음수면 충전되어선 안됨.
+            return point;
+        }
+
         UserPoint chargedPoint = userPointTable.insertOrUpdate(userId, point.point() + amount);
 
         pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());

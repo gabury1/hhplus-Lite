@@ -94,4 +94,92 @@ class ChargePointServiceTest {
 
     }
 
+    /**
+     * 상태 검증 케이스 : 포인트가 있는 유저의 포인트 충전 시 올바른 충전량 변화.
+     * <p>
+     * 시나리오:
+     * - Given: 기존 포인트가 있는 유저의 ID (1L), 기존 포인트 50L
+     * - When:  chargeUserPoint 호출 (충전량 30L)
+     * - Then:  기존 포인트 + 충전량 = 80L 반환
+     */
+    @Test
+    @DisplayName("상태 검증 케이스 : 포인트가 있는 유저의 포인트 충전 시 올바른 충전량 변화.")
+    void givenExistingPointUser_whenChargeUserPoint_thenRightPointChange() {
+        // given : 기존 포인트가 있는 유저Id(1L)
+        long userId = 1L;
+        long existingPoint = 50L;
+        long chargePoint = 30L;
+        long expectedPoint = existingPoint + chargePoint;
+
+        UserPoint existingUserPoint = new UserPoint(userId, existingPoint, System.currentTimeMillis());
+        UserPoint chargedUserPoint = new UserPoint(userId, expectedPoint, System.currentTimeMillis());
+
+        when(userPointTable.selectById(userId)).thenReturn(existingUserPoint);
+        when(userPointTable.insertOrUpdate(userId, expectedPoint)).thenReturn(chargedUserPoint);
+
+        // when : chargeUserPoint 호출
+        UserPoint result = chargePointService.chargeUserPoint(userId, chargePoint);
+
+        // then : 충전된 포인트 반환
+        assertThat(result).isEqualTo(chargedUserPoint);
+        assertThat(result.point()).isEqualTo(expectedPoint);
+    }
+
+    /**
+     * 상태 검증 케이스 : 음수 충전 시 포인트 변화가 없어야 함.
+     * <p>
+     * 시나리오:
+     * - Given: 기존 포인트가 있는 유저의 ID (1L), 기존 포인트 50L
+     * - When:  chargeUserPoint 호출 (충전량 -10L)
+     * - Then:  기존 포인트 그대로 반환 (50L)
+     */
+    @Test
+    @DisplayName("상태 검증 케이스 : 음수 충전 시 포인트 변화가 없어야 함.")
+    void givenNegativeAmount_whenChargeUserPoint_thenNoPointChange() {
+        // given : 기존 포인트가 있는 유저Id(1L)
+        long userId = 1L;
+        long existingPoint = 50L;
+        long negativeChargePoint = -10L;
+
+        UserPoint existingUserPoint = new UserPoint(userId, existingPoint, System.currentTimeMillis());
+
+        when(userPointTable.selectById(userId)).thenReturn(existingUserPoint);
+
+        // when : chargeUserPoint 호출
+        UserPoint result = chargePointService.chargeUserPoint(userId, negativeChargePoint);
+
+        // then : 기존 포인트 그대로 반환
+        assertThat(result).isEqualTo(existingUserPoint);
+        assertThat(result.point()).isEqualTo(existingPoint);
+    }
+
+
+    /**
+     * 행위 검증 케이스: 음수 충전 시 포인트 히스토리가 저장되지 않아야 함.
+     *
+     * 시나리오:
+     * - Given: 기존 포인트가 있는 유저의 ID (1L), 기존 포인트 50L
+     * - When:  chargeUserPoint 호출 (충전량 -10L)
+     * - Then:  pointHistoryTable.insert가 0번 호출되어야 함
+     */
+    @Test
+    @DisplayName("행위 검증 케이스: 음수 충전 시 포인트 히스토리가 저장되지 않아야 함.")
+    void givenNegativeAmount_whenChargeUserPoint_thenNoHistoryInsert() {
+        // given : 기존 포인트가 있는 유저Id(1L)
+        long userId = 1L;
+        long existingPoint = 50L;
+        long negativeChargePoint = -10L;
+
+        UserPoint existingUserPoint = new UserPoint(userId, existingPoint, System.currentTimeMillis());
+
+        when(userPointTable.selectById(userId)).thenReturn(existingUserPoint);
+
+        // when : chargeUserPoint 호출
+        UserPoint result = chargePointService.chargeUserPoint(userId, negativeChargePoint);
+
+        // then : pointHistoryTable.insert가 호출되지 않아야 함
+        verify(pointHistoryTable, times(0)).insert(anyLong(), anyLong(), any(TransactionType.class), anyLong());
+    }
+
+
 }
