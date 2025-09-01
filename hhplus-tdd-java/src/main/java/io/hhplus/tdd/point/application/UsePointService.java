@@ -14,6 +14,22 @@ public class UsePointService {
     private final UserPointTable userPointTable;
 
     public UserPoint useUserPoint(long userId, long amount) {
-        return null;
+        UserPoint point = userPointTable.selectById(userId);
+
+        if (amount < 0) {
+            // 사용량이 음수면 사용되어선 안됨.
+            return point;
+        }
+
+        if (point.point() < amount) {
+            // 잔액이 부족하면 사용되어선 안됨.
+            return point;
+        }
+
+        UserPoint usedPoint = userPointTable.insertOrUpdate(userId, point.point() - amount);
+
+        pointHistoryTable.insert(userId, amount, TransactionType.USE, System.currentTimeMillis());
+
+        return usedPoint;
     }
 }
